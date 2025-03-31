@@ -18,7 +18,6 @@ RETURNS @TablaPosiciones TABLE(
 )
 AS
 BEGIN
-
     DECLARE @idCampeonato int;
     SELECT @idCampeonato = IdCampeonato FROM Grupo WHERE Id = @idGrupo;
 
@@ -45,7 +44,7 @@ BEGIN
         SELECT
             p.Id AS IdPais,
             p.Pais,
-            COUNT(*) AS PJ,
+            COUNT(CASE WHEN e.Goles1 IS NOT NULL AND e.Goles2 IS NOT NULL THEN 1 END) AS PJ,
             SUM(CASE 
                 WHEN (e.IdPais1 = p.Id AND e.Goles1 > e.Goles2) OR 
                      (e.IdPais2 = p.Id AND e.Goles2 > e.Goles1) 
@@ -59,11 +58,11 @@ BEGIN
                      (e.IdPais2 = p.Id AND e.Goles2 < e.Goles1) 
                 THEN 1 ELSE 0 END) AS PP,
             SUM(CASE 
-                WHEN e.IdPais1 = p.Id THEN e.Goles1 
-                ELSE e.Goles2 END) AS GF,
+                WHEN e.IdPais1 = p.Id THEN ISNULL(e.Goles1, 0)
+                ELSE ISNULL(e.Goles2, 0) END) AS GF,
             SUM(CASE 
-                WHEN e.IdPais1 = p.Id THEN e.Goles2 
-                ELSE e.Goles1 END) AS GC
+                WHEN e.IdPais1 = p.Id THEN ISNULL(e.Goles2, 0)
+                ELSE ISNULL(e.Goles1, 0) END) AS GC
         FROM 
             GrupoPais gp
         JOIN 
@@ -72,10 +71,8 @@ BEGIN
             Encuentro e ON 
             (
                 (e.IdPais1 = p.Id OR e.IdPais2 = p.Id) AND
-                e.IdFase = 1 AND
-                e.IdCampeonato = @idCampeonato AND
-                e.Goles1 IS NOT NULL AND 
-                e.Goles2 IS NOT NULL
+                e.IdFase = 1 AND -- Fase de Grupos
+                e.IdCampeonato = @idCampeonato
             )
         WHERE 
             gp.IdGrupo = @idGrupo
